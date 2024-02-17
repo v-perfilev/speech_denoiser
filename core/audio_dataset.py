@@ -7,6 +7,9 @@ from core.audio_handler import AudioHandler
 
 
 class AudioDataset(Dataset):
+    n_fft = 430
+    hop_length = 160
+
     def __init__(self, speech_files, sound_files, speach_format='mp3', sound_format='wav'):
         self.noisy_samples, self.clean_samples = self.__create_samples(speech_files,
                                                                        sound_files,
@@ -17,10 +20,11 @@ class AudioDataset(Dataset):
         return len(self.noisy_samples)
 
     def __getitem__(self, idx):
+        spectrogram = Spectrogram(n_fft=self.n_fft, hop_length=self.hop_length)
         noisy_sample = self.noisy_samples[idx]
         clean_sample = self.clean_samples[idx]
-        noisy_spectrogram = Spectrogram()(noisy_sample)
-        clean_spectrogram = Spectrogram()(clean_sample)
+        noisy_spectrogram = spectrogram(noisy_sample)
+        clean_spectrogram = spectrogram(clean_sample)
         return noisy_spectrogram, clean_spectrogram
 
     def __create_samples(self, speech_files, sound_files, speech_format, sound_format):
@@ -35,7 +39,13 @@ class AudioDataset(Dataset):
             clean_sample, _ = audio_handler.load_audio(speach_file, speech_format)
             sound_sample, _ = audio_handler.load_audio(sound_file, sound_format)
             noisy_sample = audio_handler.mix_audio_samples(clean_sample, sound_sample, background_volume)
-            noisy_samples.append(noisy_sample)
-            clean_samples.append(clean_sample)
+
+            noisy_sample_chunks = audio_handler.divide_audio(noisy_sample.squeeze(0))
+            for noisy_sample_chunk in noisy_sample_chunks:
+                noisy_samples.append(noisy_sample_chunk.unsqueeze(0))
+
+            clean_sample_chunks = audio_handler.divide_audio(clean_sample.squeeze(0))
+            for clean_sample_chunk in clean_sample_chunks:
+                clean_samples.append(clean_sample_chunk.unsqueeze(0))
 
         return noisy_samples, clean_samples

@@ -16,8 +16,9 @@ def load_dataset():
 
 
 class AudioHandler:
-    def __init__(self, target_sample_rate=44100):
+    def __init__(self, target_sample_rate=44100, chunk_size=14000):
         self.target_sample_rate = target_sample_rate
+        self.chunk_size = chunk_size
 
     def load_audio(self, file_path, audio_format):
         if audio_format == 'mp3':
@@ -50,3 +51,12 @@ class AudioHandler:
         mixed_waveform = main_waveform + background_waveform
 
         return mixed_waveform
+
+    def divide_audio(self, audio):
+        chunks = audio.unfold(0, self.chunk_size, self.chunk_size).contiguous()
+        processed_chunks = []
+        for chunk in chunks:
+            if chunk.size(0) < self.chunk_size:
+                chunk = torch.nn.functional.pad(chunk, (0, self.chunk_size - chunk.size(0)))
+            processed_chunks.append(chunk)
+        return processed_chunks
