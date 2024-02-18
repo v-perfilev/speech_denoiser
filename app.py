@@ -4,7 +4,6 @@ import numpy as np
 import pyaudio
 import soundfile as sf
 import torchaudio
-from torchaudio.transforms import Spectrogram
 
 from core.audio_handler import AudioHandler
 from core.audio_model import AudioModel
@@ -43,9 +42,9 @@ class Recorder:
     rate = 44100
     channels = 1
     chunk_size = 1024
-    n_fft = 430
-    hop_length = 160
-    audio_file = None
+    # n_fft = 430
+    # hop_length = 160
+    audio = None
 
     def record_audio(self, duration, microphone_idx):
         p = pyaudio.PyAudio()
@@ -66,22 +65,25 @@ class Recorder:
         audio_file = BytesIO()
         sf.write(audio_file, audio_data, self.rate, format='wav')
         audio_file.seek(0)
-        self.audio_file = audio_file
+
+        self.audio = audio_handler.load_audio(audio_file, 'wav')
+
+    def extract_audio(self):
+        samples, _ = self.audio
+        return samples, self.rate
 
     def denoise_audio(self):
-        samples, _ = audio_handler.load_audio(self.audio_file, 'wav')
-
-        griffin_lim = torchaudio.transforms.GriffinLim(n_fft=self.n_fft, hop_length=self.hop_length)
+        samples, _ = self.audio
 
         denoised_chunks = []
         chunks = audio_handler.divide_audio(samples.squeeze(0))
         for chunk in chunks:
-            spectrogram = Spectrogram(n_fft=self.n_fft, hop_length=self.hop_length)
-            chunk_spectrogram = spectrogram(chunk.unsqueeze(0))
-            denoised_chunk_spectrogram = model(chunk_spectrogram)
-            denoised_chunk = griffin_lim(denoised_chunk_spectrogram)
+            chunk_spectrogram = audio_handler.sample_to_spectrogram(chunk.unsqueeze(0))
+            denoised_chunk_spectrogram = model(chunk_spectrogram.unsqueeze(0)).squeeze(0)
+            denoised_chunk = audio_handler.spectrogram_to_sample(denoised_chunk_spectrogram)
             denoised_chunks.append(denoised_chunk)
         denoised_audio_tensor = audio_handler.compile_audio(denoised_chunks).reshape(1, -1)
+        denoised_audio_tensor = audio_handler.spectral_subtraction(denoised_audio_tensor)
         return denoised_audio_tensor, self.rate
 
 
@@ -90,6 +92,8 @@ if __name__ == "__main__":
     selected_microphone_idx = select_microphone()
 
     recorder = Recorder()
-    recorder.record_audio(duration=5, microphone_idx=selected_microphone_idx)
-    denoised_audio, rate = recorder.denoise_audio()
-    save_audio(denoised_audio, rate)
+    recorder.record_audio(duration=3, microphone_idx=selected_microphone_idx)
+    source_audio, rate = recorder.extract_audio()
+    denoised_audio, _ = recorder.denoise_audio()
+    save_audio(source_audio, rate, filename="target/source_input.wav")
+    save_audio(denoised_audio, rate, filename="target/denoised_output.wav")
