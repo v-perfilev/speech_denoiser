@@ -3,7 +3,6 @@ from io import BytesIO
 import numpy as np
 import pyaudio
 import soundfile as sf
-import torchaudio
 
 from core.audio_handler import AudioHandler
 from core.audio_model import AudioModel
@@ -33,17 +32,10 @@ def select_microphone():
             print("Invalid index. Please try again.")
 
 
-def save_audio(audio_data, audio_rate, filename="target/denoised_output.wav"):
-    torchaudio.save(filename, audio_data, audio_rate)
-    print(f"Audio saved as {filename}")
-
-
 class Recorder:
     rate = 44100
     channels = 1
     chunk_size = 1024
-    # n_fft = 430
-    # hop_length = 160
     audio = None
 
     def record_audio(self, duration, microphone_idx):
@@ -66,7 +58,7 @@ class Recorder:
         sf.write(audio_file, audio_data, self.rate, format='wav')
         audio_file.seek(0)
 
-        self.audio = audio_handler.load_audio(audio_file, 'wav')
+        self.audio = audio_handler.load_audio(audio_file)
 
     def extract_audio(self):
         samples, _ = self.audio
@@ -95,5 +87,5 @@ if __name__ == "__main__":
     recorder.record_audio(duration=3, microphone_idx=selected_microphone_idx)
     source_audio, rate = recorder.extract_audio()
     denoised_audio, _ = recorder.denoise_audio()
-    save_audio(source_audio, rate, filename="target/source_input.wav")
-    save_audio(denoised_audio, rate, filename="target/denoised_output.wav")
+    audio_handler.save_audio(source_audio, rate, filename="target/source_sample.wav")
+    audio_handler.save_audio(denoised_audio, rate, filename="target/denoised_sample.wav")

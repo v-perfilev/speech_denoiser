@@ -2,7 +2,6 @@ import os
 
 import torch
 import torchaudio
-from pydub import AudioSegment
 from torchaudio.transforms import Resample, Spectrogram, InverseSpectrogram
 
 
@@ -23,14 +22,8 @@ class AudioHandler:
         self.target_sample_rate = target_sample_rate
         self.chunk_size = chunk_size
 
-    def load_audio(self, file_path, audio_format):
-        if audio_format == 'mp3':
-            audio = AudioSegment.from_mp3(file_path)
-            samples = torch.tensor(audio.get_array_of_samples()).float()
-            rate = audio.frame_rate
-        else:
-            samples, rate = torchaudio.load(file_path)
-
+    def load_audio(self, file_path):
+        samples, rate = torchaudio.load(file_path)
         return self.prepare_audio(samples, rate)
 
     def prepare_audio(self, samples, rate):
@@ -38,7 +31,7 @@ class AudioHandler:
             samples = samples.mean(dim=0, keepdim=True)
         if samples.dim() == 1:
             samples = samples.unsqueeze(0)
-
+        #
         if rate != self.target_sample_rate:
             resample_transform = Resample(orig_freq=rate, new_freq=self.target_sample_rate)
             samples = resample_transform(samples)
@@ -93,3 +86,6 @@ class AudioHandler:
         noise_reduced_spectrogram = noise_reduced_spectrogram * torch.exp(1j * phase)
 
         return inverse_spectrogram_transform(noise_reduced_spectrogram)
+
+    def save_audio(self, audio_data, audio_rate, filename):
+        torchaudio.save(filename, audio_data, audio_rate)
