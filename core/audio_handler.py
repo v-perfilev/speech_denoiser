@@ -28,6 +28,9 @@ class AudioHandler:
         else:
             samples, rate = torchaudio.load(file_path)
 
+        return self.prepare_audio(samples, rate)
+
+    def prepare_audio(self, samples, rate):
         if samples.dim() > 1 and samples.shape[0] == 2:
             samples = samples.mean(dim=0, keepdim=True)
         if samples.dim() == 1:
@@ -60,3 +63,6 @@ class AudioHandler:
                 chunk = torch.nn.functional.pad(chunk, (0, self.chunk_size - chunk.size(0)))
             processed_chunks.append(chunk)
         return processed_chunks
+
+    def compile_audio(self, chunks):
+        return torch.cat(chunks, dim=0)
