@@ -2,7 +2,7 @@ import os
 
 import torch
 import torchaudio
-from torchaudio.transforms import Resample, Spectrogram, InverseSpectrogram
+from torchaudio.transforms import Resample, Spectrogram
 
 
 def save_dataset(dataset, filename="dataset.pt"):
@@ -71,21 +71,5 @@ class AudioHandler:
         griffin_lim = torchaudio.transforms.GriffinLim(n_fft=self.n_fft, hop_length=self.hop_length)
         return griffin_lim(spectrogram)
 
-    def spectral_subtraction(self, sample, noise_level=0.3):
-        spectrogram_transform = Spectrogram(n_fft=self.n_fft, power=None)
-        inverse_spectrogram_transform = InverseSpectrogram(n_fft=self.n_fft)
-
-        spectrogram = spectrogram_transform(sample)
-
-        noise_estimation = noise_level * torch.rand(spectrogram.size())
-
-        noise_reduced_spectrogram = torch.abs(spectrogram) - noise_estimation.abs()
-        noise_reduced_spectrogram = torch.clamp(noise_reduced_spectrogram, min=0)
-
-        phase = torch.angle(spectrogram)
-        noise_reduced_spectrogram = noise_reduced_spectrogram * torch.exp(1j * phase)
-
-        return inverse_spectrogram_transform(noise_reduced_spectrogram)
-
-    def save_audio(self, audio_data, audio_rate, filename):
-        torchaudio.save(filename, audio_data, audio_rate)
+    def save_audio(self, audio_data, filename):
+        torchaudio.save(filename, audio_data, self.target_sample_rate)

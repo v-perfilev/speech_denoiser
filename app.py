@@ -75,7 +75,6 @@ class Recorder:
             denoised_chunk = audio_handler.spectrogram_to_sample(denoised_chunk_spectrogram)
             denoised_chunks.append(denoised_chunk)
         denoised_audio_tensor = audio_handler.compile_audio(denoised_chunks).reshape(1, -1)
-        denoised_audio_tensor = audio_handler.spectral_subtraction(denoised_audio_tensor)
         return denoised_audio_tensor, self.rate
 
 
@@ -85,7 +84,7 @@ if __name__ == "__main__":
 
     recorder = Recorder()
     recorder.record_audio(duration=3, microphone_idx=selected_microphone_idx)
-    source_audio, rate = recorder.extract_audio()
+    source_audio, _ = recorder.extract_audio()
     denoised_audio, _ = recorder.denoise_audio()
-    audio_handler.save_audio(source_audio, rate, filename="target/source_sample.wav")
-    audio_handler.save_audio(denoised_audio, rate, filename="target/denoised_sample.wav")
+    audio_handler.save_audio(source_audio, filename="target/source_sample.wav")
+    audio_handler.save_audio(denoised_audio, filename="target/denoised_sample.wav")

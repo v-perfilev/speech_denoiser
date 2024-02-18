@@ -35,10 +35,8 @@ class AudioDataset(Dataset):
             sound_sample, _ = self.audio_handler.load_audio(sound_file)
             noisy_sample = self.audio_handler.mix_audio_samples(clean_sample, sound_sample, background_volume)
 
-            self.audio_handler.save_audio(clean_sample, self.audio_handler.target_sample_rate,
-                                          "target/test_clean_sample.wav")
-            self.audio_handler.save_audio(noisy_sample, self.audio_handler.target_sample_rate,
-                                          "target/test_noisy_sample.wav")
+            self.audio_handler.save_audio(clean_sample, "target/test_clean_sample.wav")
+            self.audio_handler.save_audio(noisy_sample, "target/test_noisy_sample.wav")
 
             noisy_sample_chunks = self.audio_handler.divide_audio(noisy_sample.squeeze(0))
             for noisy_sample_chunk in noisy_sample_chunks:
