@@ -5,15 +5,6 @@ import torchaudio
 from torchaudio.transforms import Resample, Spectrogram
 
 
-def save_dataset(dataset, filename="dataset.pt"):
-    os.makedirs('tmp', exist_ok=True)
-    torch.save(dataset, 'tmp/' + filename)
-
-
-def load_dataset(filename="dataset.pt"):
-    return torch.load('tmp/' + filename)
-
-
 class AudioHandler:
     n_fft = 430
     hop_length = 160
@@ -71,5 +62,6 @@ class AudioHandler:
         griffin_lim = torchaudio.transforms.GriffinLim(n_fft=self.n_fft, hop_length=self.hop_length)
         return griffin_lim(spectrogram)
 
-    def save_audio(self, audio_data, filename):
-        torchaudio.save(filename, audio_data, self.target_sample_rate)
+    def save_audio(self, audio_data, filename, path="target"):
+        os.makedirs(path, exist_ok=True)
+        torchaudio.save(path + "/" + filename, audio_data, self.target_sample_rate)
