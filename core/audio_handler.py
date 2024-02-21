@@ -9,26 +9,26 @@ class AudioHandler:
     n_fft = 430
     hop_length = 160
 
-    def __init__(self, target_sample_rate=44100, chunk_size=14000):
-        self.target_sample_rate = target_sample_rate
+    def __init__(self, rate=16000, chunk_size=14000):
+        self.rate = rate
         self.chunk_size = chunk_size
 
     def load_audio(self, file_path):
-        samples, rate = torchaudio.load(file_path)
-        return self.prepare_audio(samples, rate)
+        sample, sample_rate = torchaudio.load(file_path, normalize=True)
+        return self.prepare_audio(sample, sample_rate)
 
-    def prepare_audio(self, samples, rate):
-        if samples.dim() > 1 and samples.shape[0] == 2:
-            samples = samples.mean(dim=0, keepdim=True)
-        if samples.dim() == 1:
-            samples = samples.unsqueeze(0)
+    def prepare_audio(self, sample, sample_rate):
+        if sample.dim() > 1 and sample.shape[0] == 2:
+            sample = sample.mean(dim=0, keepdim=True)
+        if sample.dim() == 1:
+            sample = sample.unsqueeze(0)
         #
-        if rate != self.target_sample_rate:
-            resample_transform = Resample(orig_freq=rate, new_freq=self.target_sample_rate)
-            samples = resample_transform(samples)
-            rate = self.target_sample_rate
+        if sample_rate != self.rate:
+            resample_transform = Resample(orig_freq=sample_rate, new_freq=self.rate)
+            sample = resample_transform(sample)
+            sample_rate = self.rate
 
-        return samples, rate
+        return sample, sample_rate
 
     def mix_audio_samples(self, main_waveform, background_waveform, background_volume):
         background_waveform *= background_volume
@@ -44,6 +44,7 @@ class AudioHandler:
 
     def divide_audio(self, audio):
         chunks = audio.unfold(0, self.chunk_size, self.chunk_size).contiguous()
+
         processed_chunks = []
         for chunk in chunks:
             if chunk.size(0) < self.chunk_size:
@@ -62,6 +63,6 @@ class AudioHandler:
         griffin_lim = torchaudio.transforms.GriffinLim(n_fft=self.n_fft, hop_length=self.hop_length)
         return griffin_lim(spectrogram)
 
-    def save_audio(self, audio_data, filename, path="target"):
+    def save_sample(self, audio_data, filename, path="target"):
         os.makedirs(path, exist_ok=True)
-        torchaudio.save(path + "/" + filename, audio_data, self.target_sample_rate)
+        torchaudio.save(path + "/" + filename, audio_data, self.rate)

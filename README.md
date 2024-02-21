@@ -24,18 +24,15 @@ pip install -r requirements.txt
    directories respectively.
 
 
-4. Add or generate some noises to `../datasets/noises` directory.
-
-
-5. Generate and save tensor dataset by running the `generate_dataset.ipynb` Jupiter Notebook. In this and the following
+4. Generate and save tensor dataset by running the `generate_dataset.ipynb` Jupiter Notebook. In this and the following
    step you can set is_spectrum_model for using a spectrum based model. A spectrogram based model will be used
    otherwise.
 
 
-6. Train the model by running the `model_training.ipynb` Jupiter Notebook.
+5. Train the model by running the `model_training.ipynb` Jupiter Notebook.
 
 
-7. Run the app:
+6. Run the app:
 
 ```bash
 python app.py
