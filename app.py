@@ -6,11 +6,15 @@ import soundfile as sf
 
 from core.audio_handler import AudioHandler
 from core.audio_model import AudioModel
+from core.denoiser import Denoiser
 
-audio_handler = AudioHandler()
 model = AudioModel()
 model.load()
 model.eval()
+
+audio_handler = AudioHandler()
+
+denoiser = Denoiser(model, audio_handler)
 
 
 def list_microphones():
@@ -36,7 +40,7 @@ class Recorder:
     rate = 44100
     channels = 1
     chunk_size = 1024
-    audio = None
+    sample = None
 
     def record_audio(self, duration, microphone_idx):
         p = pyaudio.PyAudio()
@@ -58,24 +62,7 @@ class Recorder:
         sf.write(audio_file, audio_data, self.rate, format='wav')
         audio_file.seek(0)
 
-        self.audio = audio_handler.load_audio(audio_file)
-
-    def extract_audio(self):
-        samples, _ = self.audio
-        return samples, self.rate
-
-    def denoise_audio(self):
-        samples, _ = self.audio
-
-        denoised_chunks = []
-        chunks = audio_handler.divide_audio(samples.squeeze(0))
-        for chunk in chunks:
-            chunk_spectrogram = audio_handler.sample_to_spectrogram(chunk.unsqueeze(0))
-            denoised_chunk_spectrogram = model(chunk_spectrogram.unsqueeze(0)).squeeze(0)
-            denoised_chunk = audio_handler.spectrogram_to_sample(denoised_chunk_spectrogram)
-            denoised_chunks.append(denoised_chunk)
-        denoised_audio_tensor = audio_handler.compile_audio(denoised_chunks).reshape(1, -1)
-        return denoised_audio_tensor, self.rate
+        return audio_handler.load_audio(audio_file)
 
 
 if __name__ == "__main__":
@@ -83,8 +70,7 @@ if __name__ == "__main__":
     selected_microphone_idx = select_microphone()
 
     recorder = Recorder()
-    recorder.record_audio(duration=3, microphone_idx=selected_microphone_idx)
-    source_audio, _ = recorder.extract_audio()
-    denoised_audio, _ = recorder.denoise_audio()
-    audio_handler.save_audio(source_audio, filename="target/source_sample.wav")
-    audio_handler.save_audio(denoised_audio, filename="target/denoised_sample.wav")
+    noisy_sample, _ = recorder.record_audio(duration=3, microphone_idx=selected_microphone_idx)
+    denoised_sample, _ = denoiser.denoise_sample(noisy_sample)
+    audio_handler.save_sample(noisy_sample, filename="source_sample.wav")
+    audio_handler.save_sample(denoised_sample, filename="denoised_sample.wav")
