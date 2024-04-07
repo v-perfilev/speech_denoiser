@@ -30,18 +30,6 @@ class AudioHandler:
 
         return samples, rate
 
-    def mix_audio_samples(self, main_waveform, background_waveform, background_volume):
-        background_waveform *= background_volume
-
-        if main_waveform.shape[1] > background_waveform.shape[1]:
-            repeat_times = main_waveform.shape[1] // background_waveform.shape[1] + 1
-            background_waveform = background_waveform.repeat(1, repeat_times)
-        background_waveform = background_waveform[:, :main_waveform.shape[1]]
-
-        mixed_waveform = main_waveform + background_waveform
-
-        return mixed_waveform
-
     def divide_audio(self, audio):
         chunks = audio.unfold(0, self.chunk_size, self.chunk_size).contiguous()
         processed_chunks = []

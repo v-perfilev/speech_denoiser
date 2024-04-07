@@ -1,6 +1,3 @@
-import os
-
-import torch
 import torch.nn.functional as F
 from torch import nn
 
@@ -8,7 +5,7 @@ from torch import nn
 class AudioModel(nn.Module):
     dropout_rate = 0.5
 
-    def __init__(self, in_channels=1, out_channels=1, use_mps=False):
+    def __init__(self, in_channels=1, out_channels=1):
         super(AudioModel, self).__init__()
         # Encoder
         self.enc_conv1 = nn.Conv2d(in_channels, 32, kernel_size=3, stride=1, padding=1)
@@ -28,11 +25,6 @@ class AudioModel(nn.Module):
 
         # Dropout
         self.dropout = nn.Dropout(self.dropout_rate)
-
-        if use_mps and torch.backends.mps.is_available():
-            device = torch.device("mps")
-            self.to(device)
-            self.to(torch.float32)
 
     def forward(self, x):
         # Encoder
@@ -77,11 +69,3 @@ class AudioModel(nn.Module):
                 nn.init.xavier_uniform_(m.weight)
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
-
-    def save(self, filename="audio_model_weights.pth", dict_path="target"):
-        os.makedirs(dict_path, exist_ok=True)
-        torch.save(self.state_dict(), dict_path + "/" + filename)
-
-    def load(self, filename="audio_model_weights.pth", dict_path="target"):
-        self.load_state_dict(torch.load(dict_path + "/" + filename))
-        self.eval()
