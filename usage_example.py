@@ -3,13 +3,13 @@ from io import BytesIO
 import numpy as np
 import pyaudio
 import soundfile as sf
+import torch
 
 from core.audio_handler import AudioHandler
-from core.audio_model import AudioModel
 
+model_path = "../models/speech_denoiser_model.pth"
 audio_handler = AudioHandler()
-model = AudioModel()
-model.load()
+model = torch.load(model_path)
 model.eval()
 
 
