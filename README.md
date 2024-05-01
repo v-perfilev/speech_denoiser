@@ -20,25 +20,17 @@ pip install -r requirements.txt
 ```
 
 
-3. Copy a dataset with speech and environment sound samples to the `../datasets/speech` and `../datasets/sounds`
-   directories respectively.
+3. Copy dataset with clean and noisy sound samples into the `../_datasets/` directory.
+   To generate datasets you can use my another project https://github.com/v-perfilev/audio_dataset_handler.git.
 
 
-4. Add or generate some noises to `../datasets/noises` directory.
+4. Train the model by running the `model_training.ipynb` notebook.
 
 
-5. Generate and save tensor dataset by running the `generate_dataset.ipynb` Jupiter Notebook. In this and the following
-   step you can set is_spectrum_model for using a spectrum based model. A spectrogram based model will be used
-   otherwise.
-
-
-6. Train the model by running the `model_training.ipynb` Jupiter Notebook.
-
-
-7. Run the app:
+5. Run the app:
 
 ```bash
-python app.py
+python usage_example.py
 ```
 
 ## Features
@@ -50,7 +42,9 @@ python app.py
 ## Requirements
 
 - ffmpeg (!!!)
-- PyTorch
-- PyAudio
-- Pydub
-- Matplotlib
+- numpy
+- matplotlib
+- torchaudio
+- pyaudio
+- soundfile
+- torch
