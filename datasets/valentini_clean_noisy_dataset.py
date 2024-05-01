@@ -1,11 +1,11 @@
 from torch.utils.data import Dataset
 
 
-class CleanNoisyDataset(Dataset):
-    spectrograms = []
+class ValentiniCleanNoisyDataset(Dataset):
+    """A mock dataset."""
 
     def __init__(self):
-        pass
+        self.spectrograms = []
 
     def __len__(self):
         return len(self.spectrograms)

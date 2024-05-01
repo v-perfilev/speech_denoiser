@@ -1,67 +1,22 @@
-import torch.nn.functional as F
+import torch
 from torch import nn
 
 
 class AudioModel(nn.Module):
-    dropout_rate = 0.5
 
     def __init__(self, in_channels=1, out_channels=1):
         super(AudioModel, self).__init__()
-        # Encoder
-        self.enc_conv1 = nn.Conv2d(in_channels, 32, kernel_size=3, stride=1, padding=1)
-        self.enc_conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-        self.enc_conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
-
-        # Decoder
-        self.dec_conv1 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
-        self.dec_conv2 = nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2)
-        self.dec_conv3 = nn.ConvTranspose2d(32, out_channels, kernel_size=2, stride=2)
-
-        # Skip connection
-        self.skip_conv1 = nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1)
-
-        # Pooling
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-
-        # Dropout
-        self.dropout = nn.Dropout(self.dropout_rate)
+        self.encoder = EncLayer(in_channels, 32)
+        self.bottleneck = BottleneckLayer(32, 64)
+        self.decoder = DecoderLayer(64, 32)
+        self.output = OutputLayer(32, out_channels)
 
     def forward(self, x):
-        # Encoder
-
-        enc1 = self.enc_conv1(x)
-        enc1 = F.relu(enc1)
-        enc1 = self.dropout(enc1)
-        enc1 = self.pool(enc1)
-
-        skip_output = self.skip_conv1(enc1)
-        skip_output = F.relu(skip_output)
-        skip_output = self.dropout(skip_output)
-
-        enc2 = self.enc_conv2(enc1)
-        enc2 = F.relu(enc2)
-        enc2 = self.dropout(enc2)
-        enc2 = self.pool(enc2)
-
-        enc3 = self.enc_conv3(enc2)
-        enc3 = F.relu(enc3)
-        enc3 = self.dropout(enc3)
-        enc3 = self.pool(enc3)
-
-        # Decoder
-        dec1 = self.dec_conv1(enc3)
-        dec1 = F.relu(dec1)
-        dec1 = self.dropout(dec1)
-
-        dec2 = self.dec_conv2(dec1)
-        dec2 = F.relu(dec2)
-        dec2 = self.dropout(dec2)
-
-        dec3 = self.dec_conv3(dec2 + skip_output)
-        dec3 = F.relu(dec3)
-        dec3 = self.dropout(dec3)
-
-        return dec3
+        enc, pool = self.encoder(x)
+        bottleneck = self.bottleneck(pool)
+        dec = self.decoder(bottleneck, enc)
+        out = self.output(dec)
+        return out
 
     def init_weights(self):
         for m in self.modules():
@@ -69,3 +24,64 @@ class AudioModel(nn.Module):
                 nn.init.xavier_uniform_(m.weight)
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
+
+
+class EncLayer(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.enc_block = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=5, stride=1, padding=2),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(out_channels),
+        )
+        self.pool_block = nn.Sequential(
+            nn.MaxPool2d(kernel_size=2, stride=2)
+        )
+
+    def forward(self, x):
+        enc = self.enc_block(x)
+        pool = self.pool_block(enc)
+        return enc, pool
+
+
+class BottleneckLayer(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.block = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(out_channels),
+        )
+
+    def forward(self, x):
+        return self.block(x)
+
+
+class DecoderLayer(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.up_block = nn.Sequential(
+            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2),
+        )
+        self.dec_block = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=5, stride=1, padding=2),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(out_channels),
+        )
+
+    def forward(self, x1, x2):
+        x = self.up_block(x1)
+        x = torch.cat((x, x2), dim=1)
+        x = self.dec_block(x)
+        return x
+
+
+class OutputLayer(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.block = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        )
+
+    def forward(self, x):
+        return self.block(x)
