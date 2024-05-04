@@ -32,7 +32,6 @@ class EncLayer(nn.Module):
         self.enc_block = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=5, stride=1, padding=2),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(out_channels),
         )
         self.pool_block = nn.Sequential(
             nn.MaxPool2d(kernel_size=2, stride=2)
@@ -50,7 +49,6 @@ class BottleneckLayer(nn.Module):
         self.block = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(out_channels),
         )
 
     def forward(self, x):
@@ -66,7 +64,6 @@ class DecoderLayer(nn.Module):
         self.dec_block = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=5, stride=1, padding=2),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(out_channels),
         )
 
     def forward(self, x1, x2):
