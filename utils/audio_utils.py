@@ -68,6 +68,34 @@ def compile_waveform(chunks):
     return chunks.view(1, -1)
 
 
+def divide_spectrogram(spectrogram):
+    """Divide a spectrogram into fixed-size batches for model processing."""
+    spectrogram = spectrogram.squeeze(0)
+    total_length = spectrogram.shape[1]
+    num_chunks = (total_length + config.TIME_STEPS - 1) // config.TIME_STEPS
+
+    chunks = []
+    for i in range(num_chunks):
+        start = i * config.TIME_STEPS
+        end = start + config.TIME_STEPS
+        chunk = spectrogram[:, start:end]
+        if chunk.shape[1] < config.TIME_STEPS:
+            padding_size = config.TIME_STEPS - chunk.shape[1]
+            chunk = F.pad(chunk, (0, padding_size))
+        chunk = chunk.unsqueeze(0).unsqueeze(0)
+        chunks.append(chunk)
+
+    chunks = torch.cat(chunks, dim=0)
+    return chunks, total_length
+
+
+def compile_spectrogram(chunks, source_length):
+    """Reassemble chunks back into the original tensor format."""
+    reassembled = torch.cat([chunk for chunk in chunks], dim=2)
+    reassembled = reassembled[:, :, :source_length]
+    return reassembled
+
+
 def waveform_to_spectrogram(waveform, transform=None, reshape=True):
     """Convert a waveform to a spectrogram with given FFT, hop length, and window length."""
     spectrogram_fn = torchaudio.transforms.Spectrogram(n_fft=config.N_FFT,
@@ -78,10 +106,9 @@ def waveform_to_spectrogram(waveform, transform=None, reshape=True):
         spectrogram_fn = transform(spectrogram_fn)
     spectrogram = spectrogram_fn(waveform)
     if reshape:
-        frequency_bins = int(config.N_FFT / 2)
+        frequency_bins = config.FREQUENCY_BINS
         spectrogram = spectrogram[:, :frequency_bins, :] if spectrogram.dim() == 3 \
             else spectrogram[:, :, :frequency_bins, :]
-        spectrogram = F.pad(spectrogram, (1, 1, 0, 0), 'constant', 0)
     return spectrogram
 
 
@@ -95,10 +122,8 @@ def spectrogram_to_waveform(spectrogram, transform=None, reshape=True):
     if transform is not None:
         inverse_spectrogram_fn = transform(inverse_spectrogram_fn)
     if reshape:
-        frequency_bins = int(config.N_FFT / 2 - 1)
-        spectrogram = F.pad(spectrogram, (0, 0, 0, 1), 'constant', 0)
-        spectrogram = spectrogram[:, :, 1:frequency_bins] if spectrogram.dim() == 3 \
-            else spectrogram[:, :, :, 1:frequency_bins]
+        frequency_bins_pad = int(config.N_FFT / 2 + 1) - config.FREQUENCY_BINS
+        spectrogram = F.pad(spectrogram, (0, 0, 0, frequency_bins_pad), 'constant', 0)
     waveform = inverse_spectrogram_fn(spectrogram)
     return waveform
 
